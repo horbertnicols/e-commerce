@@ -1,0 +1,242 @@
+// ============================================
+// E-Commerce Database Schema
+// 电商系统数据库设计 - Prisma Schema
+// ============================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// 1. 用户模块 (User Module)
+// ============================================
+
+// 用户角色枚举
+enum Role {
+  USER    // 普通用户
+  ADMIN   // 管理员
+}
+
+// 用户表
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String   // bcrypt 加密存储
+  name      String
+  phone     String?
+  avatar    String?
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 关联关系
+  addresses Address[]
+  cartItems CartItem[]
+  orders    Order[]
+
+  @@map("users")
+}
+
+// 收货地址表
+model Address {
+  id        String   @id @default(uuid())
+  userId    String
+  name      String   // 收货人姓名
+  phone     String   // 收货人电话
+  province  String   // 省
+  city      String   // 市
+  district  String   // 区
+  detail    String   // 详细地址
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 关联关系
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders Order[]
+
+  @@map("addresses")
+}
+
+// ============================================
+// 2. 商品模块 (Product Module)
+// ============================================
+
+// 商品状态枚举
+enum ProductStatus {
+  DRAFT      // 草稿
+  PUBLISHED  // 已上架
+  OFFLINE    // 已下架
+}
+
+// 商品分类表（支持多级分类）
+model Category {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  image       String?
+  parentId    String?  // 父分类ID，null表示顶级分类
+  sort        Int      @default(0) // 排序权重
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // 自引用关系（多级分类）
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryTree")
+
+  // 关联关系
+  products Product[]
+
+  @@map("categories")
+}
+
+// 商品表
+model Product {
+  id          String        @id @default(uuid())
+  name        String
+  description String?       @db.Text
+  price       Decimal       @db.Decimal(10, 2) // 价格，精确到分
+  originalPrice Decimal?    @db.Decimal(10, 2) // 原价（用于显示折扣）
+  stock       Int           @default(0) // 库存数量
+  images      String[]      // 商品图片数组
+  categoryId  String
+  status      ProductStatus @default(DRAFT)
+  sales       Int           @default(0) // 销量
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // 关联关系
+  category   Category    @relation(fields: [categoryId], references: [id])
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+
+  @@index([categoryId])
+  @@index([status])
+  @@map("products")
+}
+
+// ============================================
+// 3. 购物车模块 (Cart Module)
+// ============================================
+
+// 购物车项表
+model CartItem {
+  id        String   @id @default(uuid())
+  userId    String
+  productId String
+  quantity  Int      @default(1)
+  selected  Boolean  @default(true) // 是否选中
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 关联关系
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  // 同一用户同一商品只能有一条记录
+  @@unique([userId, productId])
+  @@map("cart_items")
+}
+
+// ============================================
+// 4. 订单模块 (Order Module)
+// ============================================
+
+// 订单状态枚举
+enum OrderStatus {
+  PENDING    // 待支付
+  PAID       // 已支付
+  SHIPPED    // 已发货
+  COMPLETED  // 已完成
+  CANCELLED  // 已取消
+}
+
+// 订单表
+model Order {
+  id          String      @id @default(uuid())
+  orderNo     String      @unique // 订单编号（业务编号）
+  userId      String
+  addressId   String
+  totalAmount Decimal     @db.Decimal(10, 2) // 订单总金额
+  status      OrderStatus @default(PENDING)
+  remark      String?     // 订单备注
+  paidAt      DateTime?   // 支付时间
+  shippedAt   DateTime?   // 发货时间
+  completedAt DateTime?   // 完成时间
+  cancelledAt DateTime?   // 取消时间
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // 关联关系
+  user       User        @relation(fields: [userId], references: [id])
+  address    Address     @relation(fields: [addressId], references: [id])
+  orderItems OrderItem[]
+  payment    Payment?
+
+  @@index([userId])
+  @@index([status])
+  @@index([orderNo])
+  @@map("orders")
+}
+
+// 订单商品表（快照，防止商品信息变更影响历史订单）
+model OrderItem {
+  id           String  @id @default(uuid())
+  orderId      String
+  productId    String
+  // 商品快照信息
+  productName  String
+  productPrice Decimal @db.Decimal(10, 2)
+  productImage String?
+  quantity     Int
+  subtotal     Decimal @db.Decimal(10, 2) // 小计 = 单价 * 数量
+
+  // 关联关系
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
+}
+
+// ============================================
+// 5. 支付模块 (Payment Module) - 模拟支付
+// ============================================
+
+// 支付状态枚举
+enum PaymentStatus {
+  PENDING  // 待支付
+  SUCCESS  // 支付成功
+  FAILED   // 支付失败
+  REFUNDED // 已退款
+}
+
+// 支付方式枚举
+enum PaymentMethod {
+  ALIPAY   // 支付宝（模拟）
+  WECHAT   // 微信支付（模拟）
+  BALANCE  // 余额支付（模拟）
+}
+
+// 支付记录表
+model Payment {
+  id            String        @id @default(uuid())
+  paymentNo     String        @unique // 支付单号
+  orderId       String        @unique
+  amount        Decimal       @db.Decimal(10, 2)
+  method        PaymentMethod
+  status        PaymentStatus @default(PENDING)
+  transactionId String?       // 第三方交易号（模拟）
+  paidAt        DateTime?     // 支付成功时间
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // 关联关系
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@map("payments")
+}
