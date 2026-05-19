@@ -9,6 +9,8 @@ export type OrderStatus = 'PENDING' | 'PAID' | 'SHIPPED' | 'COMPLETED' | 'CANCEL
 // 用户角色
 export type Role = 'USER' | 'ADMIN';
 
+import type { ProductSpecs } from './index';
+
 // 创建商品 DTO
 export interface CreateProductDto {
   name: string;
@@ -16,7 +18,9 @@ export interface CreateProductDto {
   price: number;
   originalPrice?: number;
   stock: number;
+  mainImage?: string;
   images?: string[];
+  specs?: ProductSpecs;
   categoryId: string;
   status?: ProductStatus;
 }
@@ -31,6 +35,7 @@ export interface CreateCategoryDto {
   image?: string;
   parentId?: string;
   sort?: number;
+  isPopular?: boolean;
 }
 
 // 更新分类 DTO

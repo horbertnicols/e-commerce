@@ -51,6 +51,7 @@ export class OrderItemResponseDto {
   productImage: string | null;
   quantity: number;
   subtotal: number;
+  selectedSpecs: Record<string, string> | null;
 
   constructor(item: any) {
     this.id = item.id;
@@ -60,6 +61,7 @@ export class OrderItemResponseDto {
     this.productImage = item.productImage;
     this.quantity = item.quantity;
     this.subtotal = Number(item.subtotal);
+    this.selectedSpecs = item.selectedSpecs ?? null;
   }
 }
 

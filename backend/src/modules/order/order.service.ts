@@ -74,9 +74,10 @@ export class OrderService {
         productId: item.productId,
         productName: item.product.name,
         productPrice: item.product.price,
-        productImage: item.product.images?.[0] || null,
+        productImage: item.product.mainImage || item.product.images?.[0] || null,
         quantity: item.quantity,
         subtotal: new Prisma.Decimal(Number(item.product.price) * item.quantity),
+        selectedSpecs: (item.selectedSpecs as any) ?? undefined,
       }));
 
       await tx.orderItem.createMany({

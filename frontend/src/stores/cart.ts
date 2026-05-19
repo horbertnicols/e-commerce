@@ -8,7 +8,11 @@ interface CartState {
 
   // Actions
   fetchCart: () => Promise<void>;
-  addItem: (productId: string, quantity: number) => Promise<void>;
+  addItem: (
+    productId: string,
+    quantity: number,
+    selectedSpecs?: Record<string, string>,
+  ) => Promise<void>;
   updateQuantity: (itemId: string, quantity: number) => Promise<void>;
   updateSelected: (itemId: string, selected: boolean) => Promise<void>;
   selectAll: (selected: boolean) => Promise<void>;
@@ -30,8 +34,12 @@ export const useCartStore = create<CartState>((set, get) => ({
     }
   },
 
-  addItem: async (productId: string, quantity: number) => {
-    await api.post('/cart', { productId, quantity });
+  addItem: async (
+    productId: string,
+    quantity: number,
+    selectedSpecs?: Record<string, string>,
+  ) => {
+    await api.post('/cart', { productId, quantity, selectedSpecs });
     await get().fetchCart();
   },
 

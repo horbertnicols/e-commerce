@@ -18,7 +18,7 @@ export class ProductService {
 
   // 创建商品
   async create(createProductDto: CreateProductDto) {
-    const { categoryId, price, originalPrice, ...data } = createProductDto;
+    const { categoryId, price, originalPrice, specs, ...data } = createProductDto;
 
     // 验证分类存在
     const category = await this.prisma.category.findUnique({
@@ -33,6 +33,9 @@ export class ProductService {
         ...data,
         price: new Prisma.Decimal(price),
         originalPrice: originalPrice ? new Prisma.Decimal(originalPrice) : null,
+        ...(specs !== undefined && {
+          specs: specs as unknown as Prisma.InputJsonValue,
+        }),
         categoryId,
       },
       include: { category: true },
@@ -158,7 +161,7 @@ export class ProductService {
   async update(id: string, updateProductDto: UpdateProductDto) {
     await this.findOne(id);
 
-    const { categoryId, price, originalPrice, ...data } = updateProductDto;
+    const { categoryId, price, originalPrice, specs, ...data } = updateProductDto;
 
     // 如果更新分类，验证分类存在
     if (categoryId) {
@@ -178,6 +181,9 @@ export class ProductService {
         ...(price !== undefined && { price: new Prisma.Decimal(price) }),
         ...(originalPrice !== undefined && {
           originalPrice: new Prisma.Decimal(originalPrice),
+        }),
+        ...(specs !== undefined && {
+          specs: specs as unknown as Prisma.InputJsonValue,
         }),
       },
       include: { category: true },

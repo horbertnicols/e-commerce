@@ -114,6 +114,21 @@ export default function AdminCategoriesPage() {
       render: (category) => getParentName(category.parentId),
     },
     {
+      key: 'isPopular',
+      header: '热门',
+      render: (category) => (
+        <span
+          className={`inline-flex px-2 py-1 text-xs rounded-full ${
+            category.isPopular
+              ? 'bg-red-100 text-red-700'
+              : 'bg-gray-100 text-gray-500'
+          }`}
+        >
+          {category.isPopular ? '是' : '否'}
+        </span>
+      ),
+    },
+    {
       key: 'sort',
       header: '排序',
     },

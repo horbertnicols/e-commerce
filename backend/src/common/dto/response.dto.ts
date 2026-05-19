@@ -40,8 +40,8 @@ export class PaginatedResponseDto<T> {
 
 // 分页查询参数
 export class PaginationDto {
-  page?: number = 1;
-  pageSize?: number = 10;
+  page: number = 1;
+  pageSize: number = 10;
 
   get skip(): number {
     return (this.page - 1) * this.pageSize;

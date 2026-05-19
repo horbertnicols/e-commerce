@@ -1,4 +1,4 @@
-import { IsUUID, IsInt, Min, IsBoolean, IsArray } from 'class-validator';
+import { IsUUID, IsInt, Min, IsBoolean, IsArray, IsObject, IsOptional } from 'class-validator';
 
 // 添加购物车 DTO
 export class AddCartItemDto {
@@ -8,6 +8,10 @@ export class AddCartItemDto {
   @IsInt()
   @Min(1)
   quantity: number;
+
+  @IsOptional()
+  @IsObject()
+  selectedSpecs?: Record<string, string>;
 }
 
 // 更新数量 DTO
@@ -41,6 +45,7 @@ export class CartItemResponseDto {
   productStatus: string;
   quantity: number;
   selected: boolean;
+  selectedSpecs: Record<string, string> | null;
   subtotal: number;
   createdAt: Date;
 
@@ -48,12 +53,13 @@ export class CartItemResponseDto {
     this.id = cartItem.id;
     this.productId = cartItem.productId;
     this.productName = cartItem.product.name;
-    this.productImage = cartItem.product.images?.[0] || null;
+    this.productImage = cartItem.product.mainImage || cartItem.product.images?.[0] || null;
     this.productPrice = Number(cartItem.product.price);
     this.productStock = cartItem.product.stock;
     this.productStatus = cartItem.product.status;
     this.quantity = cartItem.quantity;
     this.selected = cartItem.selected;
+    this.selectedSpecs = cartItem.selectedSpecs ?? null;
     this.subtotal = Number(cartItem.product.price) * cartItem.quantity;
     this.createdAt = cartItem.createdAt;
   }

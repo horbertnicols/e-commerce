@@ -89,6 +89,11 @@ export default function ProductsPage() {
       router.push('/login');
       return;
     }
+    const product = products.find((p) => p.id === productId);
+    if (product?.specs?.groups?.length) {
+      router.push(`/products/${productId}`);
+      return;
+    }
     try {
       await addItem(productId, 1);
       toast.success('已添加到购物车');

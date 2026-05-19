@@ -6,8 +6,11 @@ export class RegisterDto {
   email: string;
 
   @IsString()
-  @MinLength(6, { message: '密码至少6位' })
+  @MinLength(8, { message: '密码至少8位' })
   @MaxLength(20, { message: '密码最多20位' })
+  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/, {
+    message: '密码必须同时包含大写字母、小写字母、数字和特殊符号',
+  })
   password: string;
 
   @IsString()

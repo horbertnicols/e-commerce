@@ -24,9 +24,23 @@ export class CartService {
     return new CartSummaryDto(cartItems);
   }
 
+  // 比较两个规格对象是否完全相等
+  private specsEqual(
+    a: Record<string, string> | null | undefined,
+    b: Record<string, string> | null | undefined,
+  ): boolean {
+    if (!a && !b) return true;
+    if (!a || !b) return false;
+    const ka = Object.keys(a).sort();
+    const kb = Object.keys(b).sort();
+    if (ka.length !== kb.length) return false;
+    if (ka.some((k, i) => k !== kb[i])) return false;
+    return ka.every((k) => a[k] === b[k]);
+  }
+
   // 添加商品到购物车
   async addItem(userId: string, dto: AddCartItemDto): Promise<CartItemResponseDto> {
-    const { productId, quantity } = dto;
+    const { productId, quantity, selectedSpecs } = dto;
 
     // 检查商品是否存在且上架
     const product = await this.prisma.product.findUnique({
@@ -46,12 +60,36 @@ export class CartService {
       throw new BusinessException(ErrorCode.STOCK_NOT_ENOUGH, '库存不足');
     }
 
-    // 查找是否已在购物车中
-    const existingItem = await this.prisma.cartItem.findUnique({
-      where: {
-        userId_productId: { userId, productId },
-      },
+    // 规格校验
+    const groups = (product.specs as any)?.groups as
+      | { name: string; options: string[] }[]
+      | undefined;
+    let normalizedSpecs: Record<string, string> | null = null;
+    if (groups && groups.length > 0) {
+      if (!selectedSpecs || typeof selectedSpecs !== 'object') {
+        throw new BusinessException(ErrorCode.PARAM_ERROR, '请选择完整的商品规格');
+      }
+      const picked: Record<string, string> = {};
+      for (const g of groups) {
+        const val = selectedSpecs[g.name];
+        if (!val || !g.options.includes(val)) {
+          throw new BusinessException(
+            ErrorCode.PARAM_ERROR,
+            `请选择完整的商品规格：${g.name}`,
+          );
+        }
+        picked[g.name] = val;
+      }
+      normalizedSpecs = picked;
+    }
+
+    // 查找同商品同规格的购物车行
+    const candidates = await this.prisma.cartItem.findMany({
+      where: { userId, productId },
     });
+    const existingItem = candidates.find((c) =>
+      this.specsEqual(c.selectedSpecs as any, normalizedSpecs),
+    );
 
     let cartItem;
 
@@ -74,6 +112,7 @@ export class CartService {
           userId,
           productId,
           quantity,
+          selectedSpecs: normalizedSpecs ?? undefined,
         },
         include: { product: true },
       });
@@ -94,6 +133,10 @@ export class CartService {
     const product = await this.prisma.product.findUnique({
       where: { id: cartItem.productId },
     });
+
+    if (!product) {
+      throw new BusinessException(ErrorCode.PRODUCT_NOT_FOUND, '商品不存在');
+    }
 
     if (product.stock < quantity) {
       throw new BusinessException(ErrorCode.STOCK_NOT_ENOUGH, '库存不足');

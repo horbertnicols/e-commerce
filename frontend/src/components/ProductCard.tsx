@@ -17,14 +17,15 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
   const discountPercent = hasDiscount
     ? Math.round((1 - product.price / product.originalPrice!) * 100)
     : 0;
+  const cover = product.mainImage || product.images?.[0];
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden group hover:shadow-md transition-shadow">
       <Link href={`/products/${product.id}`}>
         <div className="relative aspect-square bg-gray-100">
-          {product.images?.[0] ? (
+          {cover ? (
             <Image
-              src={product.images[0]}
+              src={cover}
               alt={product.name}
               fill
               className="object-cover group-hover:scale-105 transition-transform"
@@ -71,18 +72,33 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
         </div>
 
         {onAddToCart && product.stock > 0 && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full mt-3"
-            onClick={(e) => {
-              e.preventDefault();
-              onAddToCart(product.id);
-            }}
-          >
-            <ShoppingCart className="w-4 h-4 mr-2" />
-            加入购物车
-          </Button>
+          <>
+            {product.specs?.groups?.length ? (
+              <Link href={`/products/${product.id}`}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full mt-3"
+                >
+                  <ShoppingCart className="w-4 h-4 mr-2" />
+                  选择规格
+                </Button>
+              </Link>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full mt-3"
+                onClick={(e) => {
+                  e.preventDefault();
+                  onAddToCart(product.id);
+                }}
+              >
+                <ShoppingCart className="w-4 h-4 mr-2" />
+                加入购物车
+              </Button>
+            )}
+          </>
         )}
       </div>
     </div>

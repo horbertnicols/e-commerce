@@ -44,8 +44,14 @@ export default function RegisterPage() {
 
     if (!formData.password) {
       newErrors.password = '请输入密码';
-    } else if (formData.password.length < 6) {
-      newErrors.password = '密码至少6位';
+    } else if (formData.password.length < 8 || formData.password.length > 20) {
+      newErrors.password = '密码长度需为 8-20 位';
+    } else if (
+      !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/.test(
+        formData.password,
+      )
+    ) {
+      newErrors.password = '密码必须同时包含大写字母、小写字母、数字和特殊符号';
     }
 
     if (!formData.confirmPassword) {
@@ -112,7 +118,7 @@ export default function RegisterPage() {
               name="password"
               type="password"
               label="密码"
-              placeholder="请输入密码（至少6位）"
+              placeholder="8-20 位，需含大小写字母、数字和特殊符号"
               value={formData.password}
               onChange={handleChange}
               error={errors.password}

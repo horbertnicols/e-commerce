@@ -23,6 +23,7 @@ export default function ProductDetailPage() {
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
   const [adding, setAdding] = useState(false);
+  const [selectedSpecs, setSelectedSpecs] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -49,6 +50,10 @@ export default function ProductDetailPage() {
     }
   };
 
+  const specsReady =
+    !product?.specs?.groups?.length ||
+    product.specs.groups.every((g) => !!selectedSpecs[g.name]);
+
   const handleAddToCart = async () => {
     if (!isAuthenticated) {
       toast.error('请先登录');
@@ -58,9 +63,18 @@ export default function ProductDetailPage() {
 
     if (!product) return;
 
+    if (!specsReady) {
+      toast.error('请先选择完整的商品规格');
+      return;
+    }
+
     setAdding(true);
     try {
-      await addItem(product.id, quantity);
+      await addItem(
+        product.id,
+        quantity,
+        Object.keys(selectedSpecs).length ? selectedSpecs : undefined,
+      );
       toast.success('已添加到购物车');
     } catch (error: any) {
       toast.error(error.message || '添加失败');
@@ -78,9 +92,18 @@ export default function ProductDetailPage() {
 
     if (!product) return;
 
+    if (!specsReady) {
+      toast.error('请先选择完整的商品规格');
+      return;
+    }
+
     setAdding(true);
     try {
-      await addItem(product.id, quantity);
+      await addItem(
+        product.id,
+        quantity,
+        Object.keys(selectedSpecs).length ? selectedSpecs : undefined,
+      );
       router.push('/cart');
     } catch (error: any) {
       toast.error(error.message || '操作失败');
@@ -111,6 +134,10 @@ export default function ProductDetailPage() {
   }
 
   const hasDiscount = product.originalPrice && product.originalPrice > product.price;
+  const gallery: string[] = [
+    ...(product.mainImage ? [product.mainImage] : []),
+    ...(product.images || []).filter((img) => img !== product.mainImage),
+  ];
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -127,9 +154,9 @@ export default function ProductDetailPage() {
         {/* Images */}
         <div>
           <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden mb-4">
-            {product.images?.[selectedImage] ? (
+            {gallery[selectedImage] ? (
               <Image
-                src={product.images[selectedImage]}
+                src={gallery[selectedImage]}
                 alt={product.name}
                 width={600}
                 height={600}
@@ -143,9 +170,9 @@ export default function ProductDetailPage() {
           </div>
 
           {/* Thumbnails */}
-          {product.images && product.images.length > 1 && (
+          {gallery.length > 1 && (
             <div className="flex gap-2 overflow-x-auto">
-              {product.images.map((img, idx) => (
+              {gallery.map((img, idx) => (
                 <button
                   key={idx}
                   onClick={() => setSelectedImage(idx)}
@@ -200,6 +227,46 @@ export default function ProductDetailPage() {
             <span>分类: {product.categoryName}</span>
           </div>
 
+          {/* Specs */}
+          {product.specs?.groups && product.specs.groups.length > 0 && (
+            <div className="mb-6 space-y-3">
+              {product.specs.groups.map((group, gi) => (
+                <div key={gi}>
+                  <span className="text-sm text-gray-600 mb-2 block">
+                    {group.name}
+                    {!selectedSpecs[group.name] && (
+                      <span className="ml-2 text-xs text-red-500">请选择</span>
+                    )}
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {group.options.map((opt, oi) => {
+                      const active = selectedSpecs[group.name] === opt;
+                      return (
+                        <button
+                          key={oi}
+                          type="button"
+                          onClick={() =>
+                            setSelectedSpecs((prev) => ({
+                              ...prev,
+                              [group.name]: opt,
+                            }))
+                          }
+                          className={`px-3 py-1 rounded-full text-sm border transition-colors ${
+                            active
+                              ? 'bg-primary-50 text-primary-700 border-primary-500'
+                              : 'bg-gray-100 text-gray-700 border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          {opt}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Quantity */}
           <div className="mb-6">
             <span className="text-sm text-gray-600 mb-2 block">数量</span>
@@ -234,7 +301,7 @@ export default function ProductDetailPage() {
               size="lg"
               className="flex-1"
               onClick={handleAddToCart}
-              disabled={product.stock === 0 || adding}
+              disabled={product.stock === 0 || adding || !specsReady}
               loading={adding}
             >
               <ShoppingCart className="w-5 h-5 mr-2" />
@@ -244,11 +311,17 @@ export default function ProductDetailPage() {
               size="lg"
               className="flex-1"
               onClick={handleBuyNow}
-              disabled={product.stock === 0 || adding}
+              disabled={product.stock === 0 || adding || !specsReady}
             >
               立即购买
             </Button>
           </div>
+
+          {!specsReady && product.stock > 0 && (
+            <p className="mt-3 text-sm text-red-500 text-center">
+              请先选择完整的商品规格
+            </p>
+          )}
 
           {product.stock === 0 && (
             <p className="mt-4 text-red-500 text-center">商品已售罄</p>

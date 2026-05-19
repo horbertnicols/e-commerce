@@ -20,6 +20,13 @@ import { Role } from '@prisma/client';
 export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}
 
+  // 获取热门分类（公开）
+  @Public()
+  @Get('popular')
+  async findPopular() {
+    return this.categoryService.findPopular();
+  }
+
   // 获取分类树（公开）
   @Public()
   @Get('tree')

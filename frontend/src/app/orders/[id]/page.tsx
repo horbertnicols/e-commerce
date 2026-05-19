@@ -226,6 +226,14 @@ export default function OrderDetailPage() {
 
               <div className="flex-1 min-w-0">
                 <p className="text-gray-900">{item.productName}</p>
+                {item.selectedSpecs &&
+                  Object.keys(item.selectedSpecs).length > 0 && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      {Object.entries(item.selectedSpecs)
+                        .map(([k, v]) => `${k}: ${v}`)
+                        .join(' / ')}
+                    </p>
+                  )}
                 <p className="text-gray-500 text-sm mt-1">
                   {formatPrice(item.productPrice)} x {item.quantity}
                 </p>

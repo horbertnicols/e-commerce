@@ -26,6 +26,7 @@ export default function CategoryForm({
     image: initialData?.image || '',
     parentId: initialData?.parentId || undefined,
     sort: initialData?.sort || 0,
+    isPopular: initialData?.isPopular || false,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -93,6 +94,21 @@ export default function CategoryForm({
             </option>
           ))}
         </select>
+      </div>
+
+      <div className="flex items-center gap-3">
+        <input
+          type="checkbox"
+          id="isPopular"
+          checked={formData.isPopular || false}
+          onChange={(e) =>
+            setFormData({ ...formData, isPopular: e.target.checked })
+          }
+          className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
+        />
+        <label htmlFor="isPopular" className="text-sm font-medium text-gray-700">
+          设为热门分类（首页展示）
+        </label>
       </div>
 
       <Input

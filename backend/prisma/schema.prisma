@@ -82,6 +82,7 @@ model Category {
   image       String?
   parentId    String?  // 父分类ID，null表示顶级分类
   sort        Int      @default(0) // 排序权重
+  isPopular   Boolean  @default(false) // 是否热门分类
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -103,7 +104,9 @@ model Product {
   price       Decimal       @db.Decimal(10, 2) // 价格，精确到分
   originalPrice Decimal?    @db.Decimal(10, 2) // 原价（用于显示折扣）
   stock       Int           @default(0) // 库存数量
-  images      String[]      // 商品图片数组
+  mainImage   String?       // 商品头图（主图）
+  images      String[]      // 商品图片数组（轮播图）
+  specs       Json?         // 商品规格（仅展示，结构: { groups: [{ name, options[] }] }）
   categoryId  String
   status      ProductStatus @default(DRAFT)
   sales       Int           @default(0) // 销量
@@ -126,20 +129,20 @@ model Product {
 
 // 购物车项表
 model CartItem {
-  id        String   @id @default(uuid())
-  userId    String
-  productId String
-  quantity  Int      @default(1)
-  selected  Boolean  @default(true) // 是否选中
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id @default(uuid())
+  userId        String
+  productId     String
+  quantity      Int      @default(1)
+  selected      Boolean  @default(true) // 是否选中
+  selectedSpecs Json?    // 选中的规格组合 { 规格名: 选项 }；无规格商品为 null
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   // 关联关系
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  // 同一用户同一商品只能有一条记录
-  @@unique([userId, productId])
+  @@index([userId, productId])
   @@map("cart_items")
 }
 
@@ -195,6 +198,7 @@ model OrderItem {
   productImage String?
   quantity     Int
   subtotal     Decimal @db.Decimal(10, 2) // 小计 = 单价 * 数量
+  selectedSpecs Json?  // 下单时选中的规格快照
 
   // 关联关系
   order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)

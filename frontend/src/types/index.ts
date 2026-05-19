@@ -46,7 +46,19 @@ export interface Category {
   image: string | null;
   parentId: string | null;
   sort: number;
+  isPopular: boolean;
   children?: Category[];
+}
+
+// 商品规格组
+export interface SpecGroup {
+  name: string;
+  options: string[];
+}
+
+// 商品规格（仅展示用）
+export interface ProductSpecs {
+  groups: SpecGroup[];
 }
 
 // 商品
@@ -57,7 +69,9 @@ export interface Product {
   price: number;
   originalPrice: number | null;
   stock: number;
+  mainImage: string | null;
   images: string[];
+  specs: ProductSpecs | null;
   categoryId: string;
   categoryName?: string;
   status: 'DRAFT' | 'PUBLISHED' | 'OFFLINE';
@@ -76,6 +90,7 @@ export interface CartItem {
   productStatus: string;
   quantity: number;
   selected: boolean;
+  selectedSpecs: Record<string, string> | null;
   subtotal: number;
 }
 
@@ -111,6 +126,7 @@ export interface OrderItem {
   productImage: string | null;
   quantity: number;
   subtotal: number;
+  selectedSpecs: Record<string, string> | null;
 }
 
 // 订单

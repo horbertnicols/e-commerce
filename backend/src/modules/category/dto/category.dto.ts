@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsUUID, IsInt, Min } from 'class-validator';
+import { IsString, IsOptional, IsUUID, IsInt, IsBoolean, Min } from 'class-validator';
 
 // 创建分类 DTO
 export class CreateCategoryDto {
@@ -21,6 +21,10 @@ export class CreateCategoryDto {
   @IsInt()
   @Min(0)
   sort?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  isPopular?: boolean;
 }
 
 // 更新分类 DTO
@@ -45,6 +49,10 @@ export class UpdateCategoryDto {
   @IsInt()
   @Min(0)
   sort?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  isPopular?: boolean;
 }
 
 // 分类响应（包含子分类）
@@ -55,6 +63,7 @@ export class CategoryTreeDto {
   image: string | null;
   parentId: string | null;
   sort: number;
+  isPopular: boolean;
   children?: CategoryTreeDto[];
 
   constructor(category: any) {
@@ -64,6 +73,7 @@ export class CategoryTreeDto {
     this.image = category.image;
     this.parentId = category.parentId;
     this.sort = category.sort;
+    this.isPopular = category.isPopular;
     if (category.children) {
       this.children = category.children.map((c: any) => new CategoryTreeDto(c));
     }

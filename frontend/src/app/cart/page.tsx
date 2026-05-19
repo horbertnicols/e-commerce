@@ -164,6 +164,14 @@ export default function CartPage() {
                   >
                     {item.productName}
                   </Link>
+                  {item.selectedSpecs &&
+                    Object.keys(item.selectedSpecs).length > 0 && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        {Object.entries(item.selectedSpecs)
+                          .map(([k, v]) => `${k}: ${v}`)
+                          .join(' / ')}
+                      </p>
+                    )}
                   <p className="text-red-500 font-semibold mt-1">
                     {formatPrice(item.productPrice)}
                   </p>

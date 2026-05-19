@@ -39,6 +39,14 @@ export class CategoryService {
     });
   }
 
+  // 获取热门分类
+  async findPopular() {
+    return this.prisma.category.findMany({
+      where: { isPopular: true },
+      orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }],
+    });
+  }
+
   // 获取分类树结构
   async findTree() {
     const categories = await this.prisma.category.findMany({

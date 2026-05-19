@@ -10,6 +10,7 @@ import { CartModule } from './modules/cart/cart.module';
 import { AddressModule } from './modules/address/address.module';
 import { OrderModule } from './modules/order/order.module';
 import { PaymentModule } from './modules/payment/payment.module';
+import { UploadModule } from './modules/upload/upload.module';
 
 @Module({
   imports: [
@@ -38,6 +39,8 @@ import { PaymentModule } from './modules/payment/payment.module';
     OrderModule,
     // 支付模块
     PaymentModule,
+    // 上传模块
+    UploadModule,
   ],
   controllers: [],
   providers: [],

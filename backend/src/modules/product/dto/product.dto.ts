@@ -7,9 +7,31 @@ import {
   Min,
   IsArray,
   IsEnum,
+  ValidateNested,
+  ArrayMaxSize,
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 import { ProductStatus } from '@prisma/client';
+
+// 规格组 DTO
+export class SpecGroupDto {
+  @IsString()
+  name: string;
+
+  @IsArray()
+  @IsString({ each: true })
+  @ArrayMaxSize(50)
+  options: string[];
+}
+
+// 商品规格 DTO
+export class ProductSpecsDto {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SpecGroupDto)
+  @ArrayMaxSize(10)
+  groups: SpecGroupDto[];
+}
 
 // 创建商品 DTO
 export class CreateProductDto {
@@ -34,9 +56,18 @@ export class CreateProductDto {
   stock: number;
 
   @IsOptional()
+  @IsString()
+  mainImage?: string;
+
+  @IsOptional()
   @IsArray()
   @IsString({ each: true })
   images?: string[];
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ProductSpecsDto)
+  specs?: ProductSpecsDto;
 
   @IsUUID()
   categoryId: string;
@@ -72,9 +103,18 @@ export class UpdateProductDto {
   stock?: number;
 
   @IsOptional()
+  @IsString()
+  mainImage?: string;
+
+  @IsOptional()
   @IsArray()
   @IsString({ each: true })
   images?: string[];
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ProductSpecsDto)
+  specs?: ProductSpecsDto;
 
   @IsOptional()
   @IsUUID()
@@ -146,7 +186,9 @@ export class ProductResponseDto {
   price: number;
   originalPrice: number | null;
   stock: number;
+  mainImage: string | null;
   images: string[];
+  specs: any;
   categoryId: string;
   categoryName?: string;
   status: string;
@@ -160,7 +202,9 @@ export class ProductResponseDto {
     this.price = Number(product.price);
     this.originalPrice = product.originalPrice ? Number(product.originalPrice) : null;
     this.stock = product.stock;
+    this.mainImage = product.mainImage ?? null;
     this.images = product.images || [];
+    this.specs = product.specs ?? null;
     this.categoryId = product.categoryId;
     this.categoryName = product.category?.name;
     this.status = product.status;

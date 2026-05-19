@@ -108,6 +108,14 @@ export default function AdminOrderDetailPage() {
                   )}
                   <div className="flex-1">
                     <p className="font-medium">{item.productName}</p>
+                    {item.selectedSpecs &&
+                      Object.keys(item.selectedSpecs).length > 0 && (
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {Object.entries(item.selectedSpecs)
+                            .map(([k, v]) => `${k}: ${v}`)
+                            .join(' / ')}
+                        </p>
+                      )}
                     <p className="text-sm text-gray-500">
                       ¥{item.productPrice} × {item.quantity}
                     </p>
