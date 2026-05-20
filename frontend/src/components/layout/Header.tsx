@@ -100,6 +100,14 @@ export default function Header() {
                         管理后台
                       </Link>
                     )}
+                    {user?.role === 'MERCHANT' && (
+                      <Link
+                        href="/merchant"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                      >
+                        商家后台
+                      </Link>
+                    )}
                     <hr className="my-1" />
                     <button
                       onClick={handleLogout}

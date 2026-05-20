@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
+import { Store } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -19,11 +20,24 @@ export default function RegisterPage() {
     password: '',
     confirmPassword: '',
   });
+  const [asMerchant, setAsMerchant] = useState(false);
+  const [merchantData, setMerchantData] = useState({
+    shopName: '',
+    contactPhone: '',
+    businessLicense: '',
+    description: '',
+  });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => ({ ...prev, [name]: '' }));
+  };
+
+  const handleMerchantChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setMerchantData((prev) => ({ ...prev, [name]: value }));
     setErrors((prev) => ({ ...prev, [name]: '' }));
   };
 
@@ -60,6 +74,18 @@ export default function RegisterPage() {
       newErrors.confirmPassword = '两次密码不一致';
     }
 
+    if (asMerchant) {
+      if (!merchantData.shopName || merchantData.shopName.length < 2) {
+        newErrors.shopName = '店铺名称至少2个字符';
+      }
+      if (!merchantData.contactPhone || !/^1[3-9]\d{9}$/.test(merchantData.contactPhone)) {
+        newErrors.contactPhone = '请输入正确的手机号';
+      }
+      if (!merchantData.businessLicense) {
+        newErrors.businessLicense = '请输入营业执照号';
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -69,8 +95,20 @@ export default function RegisterPage() {
     if (!validate()) return;
 
     try {
-      await register(formData.email, formData.password, formData.name);
-      toast.success('注册成功');
+      await register(
+        formData.email,
+        formData.password,
+        formData.name,
+        asMerchant
+          ? {
+              shopName: merchantData.shopName,
+              contactPhone: merchantData.contactPhone,
+              businessLicense: merchantData.businessLicense,
+              description: merchantData.description || undefined,
+            }
+          : undefined,
+      );
+      toast.success(asMerchant ? '注册成功！商家申请已提交，请等待审核' : '注册成功');
       router.push('/');
     } catch (error) {
       if (error instanceof ApiError) {
@@ -90,7 +128,7 @@ export default function RegisterPage() {
         </div>
 
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <Input
               id="name"
               name="name"
@@ -135,12 +173,84 @@ export default function RegisterPage() {
               error={errors.confirmPassword}
             />
 
+            {/* Merchant toggle */}
+            <div className="border-t border-gray-100 pt-4">
+              <label className="flex items-center cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={asMerchant}
+                  onChange={(e) => {
+                    setAsMerchant(e.target.checked);
+                    if (!e.target.checked) {
+                      setMerchantData({ shopName: '', contactPhone: '', businessLicense: '', description: '' });
+                    }
+                  }}
+                  className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                />
+                <Store className="w-4 h-4 ml-2 text-gray-500 group-hover:text-primary-600" />
+                <span className="ml-1.5 text-sm font-medium text-gray-700 group-hover:text-primary-600">
+                  同时申请成为商家
+                </span>
+              </label>
+              {asMerchant && (
+                <div className="mt-4 space-y-4 pl-7 border-l-2 border-primary-200">
+                  <Input
+                    id="shopName"
+                    name="shopName"
+                    type="text"
+                    label="店铺名称"
+                    placeholder="请输入店铺名称"
+                    value={merchantData.shopName}
+                    onChange={handleMerchantChange}
+                    error={errors.shopName}
+                  />
+                  <Input
+                    id="contactPhone"
+                    name="contactPhone"
+                    type="text"
+                    label="联系电话"
+                    placeholder="请输入联系电话"
+                    value={merchantData.contactPhone}
+                    onChange={handleMerchantChange}
+                    error={errors.contactPhone}
+                  />
+                  <Input
+                    id="businessLicense"
+                    name="businessLicense"
+                    type="text"
+                    label="营业执照号"
+                    placeholder="请输入营业执照号"
+                    value={merchantData.businessLicense}
+                    onChange={handleMerchantChange}
+                    error={errors.businessLicense}
+                  />
+                  <div>
+                    <label
+                      htmlFor="description"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      店铺简介 <span className="text-gray-400 font-normal">(选填)</span>
+                    </label>
+                    <textarea
+                      id="description"
+                      name="description"
+                      rows={3}
+                      placeholder="简单介绍一下你的店铺..."
+                      value={merchantData.description}
+                      onChange={handleMerchantChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
             <Button
               type="submit"
               className="w-full"
               loading={isLoading}
             >
-              注册
+              {asMerchant ? '注册并申请成为商家' : '注册'}
             </Button>
           </form>
 

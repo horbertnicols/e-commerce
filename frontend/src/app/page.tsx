@@ -6,45 +6,56 @@ import Image from 'next/image';
 import { ArrowRight, Truck, Shield, Clock, CreditCard } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import api from '@/lib/api';
-import type { Category } from '@/types';
+import type { Category, SiteConfig } from '@/types';
+
+const DEFAULT_HERO: SiteConfig = {
+  hero_image:
+    'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&w=2000&q=80',
+  hero_title: '发现优质好物',
+  hero_description: '精选商品，品质保证，快速配送，购物无忧',
+  hero_button_text: '立即选购',
+};
 
 export default function HomePage() {
   const [popularCategories, setPopularCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [siteConfig, setSiteConfig] = useState<SiteConfig>(DEFAULT_HERO);
 
   useEffect(() => {
-    api.get<Category[]>('/categories/popular')
-      .then(setPopularCategories)
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    // 并行加载分类和站点配置
+    Promise.all([
+      api.get<Category[]>('/categories/popular').catch(() => [] as Category[]),
+      api.get<SiteConfig>('/site-config').catch(() => DEFAULT_HERO),
+    ]).then(([categories, config]) => {
+      setPopularCategories(categories);
+      if (config) setSiteConfig(config);
+    }).finally(() => setLoading(false));
   }, []);
+
   return (
     <div>
-      {/* Hero 背景图；换图可改下方 backgroundImage 或改用 /images/xxx.jpg */}
+      {/* Hero */}
       <section className="relative overflow-hidden text-white">
         <div
           aria-hidden
           className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
-          style={{
-            backgroundImage:
-              "url('https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&w=2000&q=80')",
-          }}
+          style={{ backgroundImage: `url('${siteConfig.hero_image}')` }}
         />
         <div
           aria-hidden
-          className="absolute inset-0 z-[1] bg-gradient-to-r from-primary-900/85 to-primary-800/80"
+          className="absolute inset-0 z-[1] bg-black/20"
         />
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <div className="text-center">
             <h1 className="text-4xl md:text-6xl font-bold mb-6">
-              发现优质好物
+              {siteConfig.hero_title}
             </h1>
             <p className="text-xl md:text-2xl text-primary-100 mb-8 max-w-2xl mx-auto">
-              精选商品，品质保证，快速配送，购物无忧
+              {siteConfig.hero_description}
             </p>
             <Link href="/products">
               <Button size="lg" variant="secondary">
-                立即选购
+                {siteConfig.hero_button_text}
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
             </Link>

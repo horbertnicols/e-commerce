@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { UserService } from '../user/user.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import { RegisterDto, LoginDto, TokenResponseDto } from './dto/auth.dto';
 import {
   BusinessException,
@@ -14,13 +15,51 @@ import { JwtPayload } from './strategies/jwt.strategy';
 export class AuthService {
   constructor(
     private readonly userService: UserService,
+    private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
   ) {}
 
-  // 用户注册
+  // 用户注册（可选附带商家入驻申请）
   async register(registerDto: RegisterDto) {
-    const user = await this.userService.create(registerDto);
+    const { email, password, name, phone, merchantInfo } = registerDto;
+
+    // 检查邮箱是否已存在
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email },
+    });
+    if (existingUser) {
+      throw new BusinessException(ErrorCode.USER_EXISTS, '该邮箱已被注册');
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // 事务：创建用户；若携带商家资料则同时建立 PENDING 状态的商家档案
+    const user = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.user.create({
+        data: {
+          email,
+          password: hashedPassword,
+          name,
+          phone,
+        },
+      });
+
+      if (merchantInfo) {
+        await tx.merchantProfile.create({
+          data: {
+            userId: created.id,
+            shopName: merchantInfo.shopName,
+            contactPhone: merchantInfo.contactPhone,
+            businessLicense: merchantInfo.businessLicense,
+            description: merchantInfo.description,
+          },
+        });
+      }
+
+      return created;
+    });
+
     return this.generateToken(user);
   }
 

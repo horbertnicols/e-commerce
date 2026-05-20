@@ -18,8 +18,17 @@ datasource db {
 
 // 用户角色枚举
 enum Role {
-  USER    // 普通用户
-  ADMIN   // 管理员
+  USER      // 普通用户（消费者）
+  ADMIN     // 管理员
+  MERCHANT  // 商家
+}
+
+// 商家入驻审核状态
+enum MerchantStatus {
+  PENDING   // 待审核
+  APPROVED  // 已通过
+  REJECTED  // 已驳回
+  SUSPENDED // 已停业（停用商家身份）
 }
 
 // 用户表
@@ -38,8 +47,31 @@ model User {
   addresses Address[]
   cartItems CartItem[]
   orders    Order[]
+  merchantProfile MerchantProfile?
+  products  Product[] @relation("MerchantProducts")
 
   @@map("users")
+}
+
+// 商家档案（1:1 关联 User，承载店铺信息与审核状态）
+model MerchantProfile {
+  id              String         @id @default(uuid())
+  userId          String         @unique
+  shopName        String         // 店铺名称
+  contactPhone    String         // 联系电话
+  businessLicense String         // 营业执照号或图片URL
+  description     String?        @db.Text // 店铺简介
+  logo            String?        // 店铺Logo
+  status          MerchantStatus @default(PENDING)
+  rejectReason    String?        // 驳回原因
+  appliedAt       DateTime       @default(now()) // 申请时间
+  reviewedAt      DateTime?      // 审核时间
+
+  // 关联关系
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@map("merchant_profiles")
 }
 
 // 收货地址表
@@ -108,6 +140,7 @@ model Product {
   images      String[]      // 商品图片数组（轮播图）
   specs       Json?         // 商品规格（仅展示，结构: { groups: [{ name, options[] }] }）
   categoryId  String
+  merchantId  String?       // 商家ID，null 表示平台自营（仅管理员可改）
   status      ProductStatus @default(DRAFT)
   sales       Int           @default(0) // 销量
   createdAt   DateTime      @default(now())
@@ -115,10 +148,12 @@ model Product {
 
   // 关联关系
   category   Category    @relation(fields: [categoryId], references: [id])
+  merchant   User?       @relation("MerchantProducts", fields: [merchantId], references: [id])
   cartItems  CartItem[]
   orderItems OrderItem[]
 
   @@index([categoryId])
+  @@index([merchantId])
   @@index([status])
   @@map("products")
 }
@@ -243,4 +278,18 @@ model Payment {
   order Order @relation(fields: [orderId], references: [id])
 
   @@map("payments")
+}
+
+// ============================================
+// 6. 站点配置模块 (Site Config)
+// ============================================
+
+// 站点配置表（key-value 存储）
+model SiteConfig {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("site_configs")
 }

@@ -19,7 +19,7 @@ const ALLOWED_EXT = ['.jpg', '.jpeg', '.png', '.webp'];
 
 @Controller('upload')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.ADMIN)
+@Roles(Role.ADMIN, Role.MERCHANT)
 export class UploadController {
   @Post('image')
   @UseInterceptors(
@@ -46,5 +46,32 @@ export class UploadController {
       throw new BadRequestException('未收到文件');
     }
     return { url: `/uploads/products/${file.filename}` };
+  }
+
+  @Post('site')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: join(process.cwd(), 'uploads', 'site'),
+        filename: (_req, file, cb) => {
+          const ext = extname(file.originalname).toLowerCase();
+          cb(null, `${randomUUID()}${ext}`);
+        },
+      }),
+      limits: { fileSize: 5 * 1024 * 1024 },
+      fileFilter: (_req, file, cb) => {
+        const ext = extname(file.originalname).toLowerCase();
+        if (!ALLOWED_EXT.includes(ext)) {
+          return cb(new BadRequestException('仅支持 jpg/png/webp 格式'), false);
+        }
+        cb(null, true);
+      },
+    }),
+  )
+  uploadSiteImage(@UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('未收到文件');
+    }
+    return { url: `/uploads/site/${file.filename}` };
   }
 }

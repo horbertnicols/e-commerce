@@ -11,6 +11,8 @@ import { AddressModule } from './modules/address/address.module';
 import { OrderModule } from './modules/order/order.module';
 import { PaymentModule } from './modules/payment/payment.module';
 import { UploadModule } from './modules/upload/upload.module';
+import { MerchantModule } from './modules/merchant/merchant.module';
+import { SiteConfigModule } from './modules/site-config/site-config.module';
 
 @Module({
   imports: [
@@ -41,6 +43,10 @@ import { UploadModule } from './modules/upload/upload.module';
     PaymentModule,
     // 上传模块
     UploadModule,
+    // 商家模块
+    MerchantModule,
+    // 站点配置模块
+    SiteConfigModule,
   ],
   controllers: [],
   providers: [],

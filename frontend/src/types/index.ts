@@ -21,8 +21,29 @@ export interface User {
   name: string;
   phone: string | null;
   avatar: string | null;
-  role: 'USER' | 'ADMIN';
+  role: 'USER' | 'ADMIN' | 'MERCHANT';
   createdAt: string;
+}
+
+// 商家档案
+export interface MerchantProfile {
+  id: string;
+  userId: string;
+  shopName: string;
+  contactPhone: string;
+  businessLicense: string;
+  description: string | null;
+  logo: string | null;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
+  rejectReason: string | null;
+  appliedAt: string;
+  reviewedAt: string | null;
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+  };
 }
 
 // 登录响应
@@ -175,4 +196,12 @@ export interface Payment {
   paidAt: string | null;
   createdAt: string;
   payUrl: string | null;
+}
+
+// 站点配置
+export interface SiteConfig {
+  hero_image: string;
+  hero_title: string;
+  hero_description: string;
+  hero_button_text: string;
 }

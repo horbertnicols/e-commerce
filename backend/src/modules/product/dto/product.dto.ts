@@ -7,6 +7,7 @@ import {
   Min,
   IsArray,
   IsEnum,
+  IsIn,
   ValidateNested,
   ArrayMaxSize,
 } from 'class-validator';
@@ -164,12 +165,18 @@ export class ProductQueryDto {
   maxPrice?: number;
 
   @IsOptional()
-  @IsString()
+  @IsIn(['price', 'sales', 'createdAt'])
   sortBy?: 'price' | 'sales' | 'createdAt' = 'createdAt';
 
   @IsOptional()
-  @IsString()
+  @IsIn(['asc', 'desc'])
   sortOrder?: 'asc' | 'desc' = 'desc';
+}
+
+// 更新状态 DTO
+export class UpdateProductStatusDto {
+  @IsEnum(ProductStatus)
+  status: ProductStatus;
 }
 
 // 更新库存 DTO
@@ -191,6 +198,8 @@ export class ProductResponseDto {
   specs: any;
   categoryId: string;
   categoryName?: string;
+  merchantId: string | null;
+  merchantName?: string | null;
   status: string;
   sales: number;
   createdAt: Date;
@@ -207,6 +216,9 @@ export class ProductResponseDto {
     this.specs = product.specs ?? null;
     this.categoryId = product.categoryId;
     this.categoryName = product.category?.name;
+    this.merchantId = product.merchantId ?? null;
+    this.merchantName =
+      product.merchant?.merchantProfile?.shopName ?? product.merchant?.name ?? null;
     this.status = product.status;
     this.sales = product.sales;
     this.createdAt = product.createdAt;

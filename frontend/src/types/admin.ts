@@ -7,7 +7,7 @@ export type ProductStatus = 'DRAFT' | 'PUBLISHED' | 'OFFLINE';
 export type OrderStatus = 'PENDING' | 'PAID' | 'SHIPPED' | 'COMPLETED' | 'CANCELLED';
 
 // 用户角色
-export type Role = 'USER' | 'ADMIN';
+export type Role = 'USER' | 'ADMIN' | 'MERCHANT';
 
 import type { ProductSpecs } from './index';
 

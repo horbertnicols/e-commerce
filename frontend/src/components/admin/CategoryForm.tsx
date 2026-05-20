@@ -1,8 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import { Upload, Loader2, Link as LinkIcon } from 'lucide-react';
+import { resizeToSquareBlob } from '@/lib/imageResize';
+import Cookies from 'js-cookie';
+import toast from 'react-hot-toast';
+import { ApiError } from '@/lib/api';
 import type { Category } from '@/types';
 import type { CreateCategoryDto } from '@/types/admin';
 
@@ -13,6 +18,25 @@ interface CategoryFormProps {
   onCancel: () => void;
 }
 
+async function uploadCategoryImage(file: File): Promise<string> {
+  const blob = await resizeToSquareBlob(file, 400);
+  const fd = new FormData();
+  fd.append('file', blob, 'image.jpg');
+
+  const token = Cookies.get('token');
+  const res = await fetch('/api/upload/image', {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: fd,
+  });
+
+  const json = await res.json();
+  if (json.code !== 0) {
+    throw new ApiError(json.code, json.message || '上传失败');
+  }
+  return json.data.url as string;
+}
+
 export default function CategoryForm({
   initialData,
   categories,
@@ -20,6 +44,10 @@ export default function CategoryForm({
   onCancel,
 }: CategoryFormProps) {
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [showUrlInput, setShowUrlInput] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
   const [formData, setFormData] = useState<CreateCategoryDto>({
     name: initialData?.name || '',
     description: initialData?.description || '',
@@ -36,6 +64,32 @@ export default function CategoryForm({
       await onSubmit(formData);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('仅支持图片文件');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('图片不能超过 5MB');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const url = await uploadCategoryImage(file);
+      setFormData({ ...formData, image: url });
+      toast.success('图片上传成功');
+    } catch {
+      toast.error('图片上传失败');
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = '';
     }
   };
 
@@ -66,12 +120,83 @@ export default function CategoryForm({
         />
       </div>
 
-      <Input
-        label="分类图片 URL"
-        value={formData.image || ''}
-        onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-        placeholder="https://example.com/image.jpg"
-      />
+      {/* 分类图片 - 上传或URL */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          分类图片
+        </label>
+
+        {/* 预览 */}
+        {(formData.image || uploading) && (
+          <div className="mb-3 w-24 h-24 rounded-lg overflow-hidden bg-gray-100 border border-gray-200 relative">
+            {formData.image && (
+              <img
+                src={formData.image}
+                alt="分类图片预览"
+                className="w-full h-full object-cover"
+              />
+            )}
+            {uploading && (
+              <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                <Loader2 className="w-6 h-6 animate-spin text-white" />
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+          >
+            <Upload className="w-4 h-4 mr-1" />
+            {formData.image ? '更换图片' : '上传图片'}
+          </Button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleImageUpload}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setShowUrlInput(!showUrlInput)}
+          >
+            <LinkIcon className="w-4 h-4 mr-1" />
+            {showUrlInput ? '收起' : '输入URL'}
+          </Button>
+          {formData.image && (
+            <button
+              type="button"
+              onClick={() => setFormData({ ...formData, image: '' })}
+              className="text-xs text-red-500 hover:text-red-700 ml-2"
+            >
+              清除图片
+            </button>
+          )}
+        </div>
+
+        {showUrlInput && (
+          <div className="mt-2">
+            <Input
+              label=""
+              placeholder="https://example.com/image.jpg"
+              value={formData.image || ''}
+              onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+            />
+          </div>
+        )}
+
+        <p className="text-xs text-gray-400 mt-1">
+          支持 jpg/png/webp，自动裁剪为正方形
+        </p>
+      </div>
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">

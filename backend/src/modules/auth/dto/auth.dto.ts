@@ -1,4 +1,35 @@
-import { IsEmail, IsString, MinLength, MaxLength, IsOptional, Matches } from 'class-validator';
+import {
+  IsEmail,
+  IsString,
+  MinLength,
+  MaxLength,
+  IsOptional,
+  Matches,
+  ValidateNested,
+} from 'class-validator';
+import { Type } from 'class-transformer';
+
+// 商家入驻申请 DTO
+export class MerchantApplyDto {
+  @IsString()
+  @MinLength(2, { message: '店铺名称至少2个字符' })
+  @MaxLength(30, { message: '店铺名称最多30个字符' })
+  shopName: string;
+
+  @IsString()
+  @Matches(/^1[3-9]\d{9}$/, { message: '联系电话格式不正确' })
+  contactPhone: string;
+
+  @IsString()
+  @MinLength(2, { message: '营业执照不能为空' })
+  @MaxLength(200, { message: '营业执照内容过长' })
+  businessLicense: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500, { message: '店铺简介最多500字' })
+  description?: string;
+}
 
 // 注册 DTO
 export class RegisterDto {
@@ -22,6 +53,12 @@ export class RegisterDto {
   @IsString()
   @Matches(/^1[3-9]\d{9}$/, { message: '手机号格式不正确' })
   phone?: string;
+
+  // 商家入驻资料（可选）：填写时账号会附带一份待审核的商家档案
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => MerchantApplyDto)
+  merchantInfo?: MerchantApplyDto;
 }
 
 // 登录 DTO

@@ -7,47 +7,33 @@ import { useAuthStore } from '@/stores/auth';
 import {
   LayoutDashboard,
   Package,
-  FolderTree,
   ShoppingCart,
-  Users,
   Store,
-  Settings,
   LogOut,
 } from 'lucide-react';
 
-const allNavItems = [
-  { href: '/admin', label: '仪表盘', icon: LayoutDashboard, adminOnly: false },
-  { href: '/admin/products', label: '商品管理', icon: Package, adminOnly: false },
-  { href: '/admin/categories', label: '分类管理', icon: FolderTree, adminOnly: true },
-  { href: '/admin/orders', label: '订单管理', icon: ShoppingCart, adminOnly: true },
-  { href: '/admin/users', label: '用户管理', icon: Users, adminOnly: true },
-  { href: '/admin/merchants', label: '商家管理', icon: Store, adminOnly: true },
-  { href: '/admin/settings', label: '站点设置', icon: Settings, adminOnly: true },
+const navItems = [
+  { href: '/merchant', label: '仪表盘', icon: LayoutDashboard },
+  { href: '/merchant/products', label: '商品管理', icon: Package },
+  { href: '/merchant/orders', label: '订单管理', icon: ShoppingCart },
 ];
 
-export default function Sidebar() {
+export default function MerchantSidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuthStore();
 
   const isActive = (href: string) => {
-    if (href === '/admin') {
-      return pathname === '/admin';
+    if (href === '/merchant') {
+      return pathname === '/merchant';
     }
     return pathname.startsWith(href);
   };
 
-  const isAdmin = user?.role === 'ADMIN';
-  const navItems = allNavItems.filter((item) => !item.adminOnly || isAdmin);
-
   return (
     <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
       <div className="p-6 border-b border-gray-200">
-        <h1 className="text-xl font-bold text-gray-900">
-          {isAdmin ? '管理后台' : '商家后台'}
-        </h1>
-        <p className="text-sm text-gray-500 mt-1">
-          {isAdmin ? 'E-Commerce Admin' : 'Merchant Panel'}
-        </p>
+        <h1 className="text-xl font-bold text-gray-900">商家后台</h1>
+        <p className="text-sm text-gray-500 mt-1">Merchant Panel</p>
       </div>
 
       <nav className="flex-1 p-4 space-y-1">

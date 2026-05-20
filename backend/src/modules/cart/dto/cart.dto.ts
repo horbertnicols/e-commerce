@@ -1,10 +1,12 @@
 import { IsUUID, IsInt, Min, IsBoolean, IsArray, IsObject, IsOptional } from 'class-validator';
+import { Type } from 'class-transformer';
 
 // 添加购物车 DTO
 export class AddCartItemDto {
   @IsUUID()
   productId: string;
 
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   quantity: number;

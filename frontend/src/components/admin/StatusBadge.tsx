@@ -25,6 +25,7 @@ const statusConfigs: Record<StatusType, Record<string, StatusConfig>> = {
   role: {
     USER: { label: '普通用户', className: 'bg-gray-100 text-gray-700' },
     ADMIN: { label: '管理员', className: 'bg-blue-100 text-blue-700' },
+    MERCHANT: { label: '商家', className: 'bg-green-100 text-green-700' },
   },
 };
 

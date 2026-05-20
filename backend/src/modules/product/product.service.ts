@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { Prisma, ProductStatus } from '@prisma/client';
+import { Prisma, ProductStatus, Role } from '@prisma/client';
 import {
   CreateProductDto,
   UpdateProductDto,
@@ -11,13 +11,18 @@ import {
   BusinessException,
   ErrorCode,
 } from '../../common/filters/http-exception.filter';
+import {
+  AccessUser,
+  assertProductMutationAccess,
+} from './product-access.helper';
 
 @Injectable()
 export class ProductService {
   constructor(private readonly prisma: PrismaService) {}
 
   // 创建商品
-  async create(createProductDto: CreateProductDto) {
+  // user 可选：merchant 自动归属到本人；admin 不写归属（平台自营）
+  async create(createProductDto: CreateProductDto, user?: AccessUser) {
     const { categoryId, price, originalPrice, specs, ...data } = createProductDto;
 
     // 验证分类存在
@@ -28,6 +33,9 @@ export class ProductService {
       throw new BusinessException(ErrorCode.NOT_FOUND, '商品分类不存在');
     }
 
+    const merchantId =
+      user && user.role === Role.MERCHANT ? user.id : null;
+
     const product = await this.prisma.product.create({
       data: {
         ...data,
@@ -37,6 +45,7 @@ export class ProductService {
           specs: specs as unknown as Prisma.InputJsonValue,
         }),
         categoryId,
+        merchantId,
       },
       include: { category: true },
     });
@@ -45,7 +54,8 @@ export class ProductService {
   }
 
   // 获取商品列表（分页、筛选、搜索）
-  async findAll(query: ProductQueryDto) {
+  // extraWhere：服务层强制注入的过滤条件（如商家自查时的 merchantId）
+  async findAll(query: ProductQueryDto, extraWhere?: Prisma.ProductWhereInput) {
     const {
       page = 1,
       pageSize = 10,
@@ -61,7 +71,7 @@ export class ProductService {
     const skip = (page - 1) * pageSize;
 
     // 构建查询条件
-    const where: Prisma.ProductWhereInput = {};
+    const where: Prisma.ProductWhereInput = { ...extraWhere };
 
     // 关键词搜索（名称或描述）
     if (keyword) {
@@ -103,7 +113,10 @@ export class ProductService {
         skip,
         take: pageSize,
         orderBy,
-        include: { category: true },
+        include: {
+          category: true,
+          merchant: { include: { merchantProfile: true } },
+        },
       }),
       this.prisma.product.count({ where }),
     ]);
@@ -129,7 +142,10 @@ export class ProductService {
   async findOne(id: string) {
     const product = await this.prisma.product.findUnique({
       where: { id },
-      include: { category: true },
+      include: {
+        category: true,
+        merchant: { include: { merchantProfile: true } },
+      },
     });
 
     if (!product) {
@@ -143,7 +159,10 @@ export class ProductService {
   async findOnePublished(id: string) {
     const product = await this.prisma.product.findUnique({
       where: { id },
-      include: { category: true },
+      include: {
+        category: true,
+        merchant: { include: { merchantProfile: true } },
+      },
     });
 
     if (!product) {
@@ -158,8 +177,8 @@ export class ProductService {
   }
 
   // 更新商品
-  async update(id: string, updateProductDto: UpdateProductDto) {
-    await this.findOne(id);
+  async update(id: string, updateProductDto: UpdateProductDto, user: AccessUser) {
+    await assertProductMutationAccess(this.prisma, user, id);
 
     const { categoryId, price, originalPrice, specs, ...data } = updateProductDto;
 
@@ -186,34 +205,34 @@ export class ProductService {
           specs: specs as unknown as Prisma.InputJsonValue,
         }),
       },
-      include: { category: true },
+      include: {
+        category: true,
+        merchant: { include: { merchantProfile: true } },
+      },
     });
 
     return new ProductResponseDto(product);
   }
 
   // 更新商品状态
-  async updateStatus(id: string, status: ProductStatus) {
-    await this.findOne(id);
+  async updateStatus(id: string, status: ProductStatus, user: AccessUser) {
+    await assertProductMutationAccess(this.prisma, user, id);
 
     const product = await this.prisma.product.update({
       where: { id },
       data: { status },
-      include: { category: true },
+      include: {
+        category: true,
+        merchant: { include: { merchantProfile: true } },
+      },
     });
 
     return new ProductResponseDto(product);
   }
 
   // 更新库存
-  async updateStock(id: string, quantity: number) {
-    const product = await this.prisma.product.findUnique({
-      where: { id },
-    });
-
-    if (!product) {
-      throw new BusinessException(ErrorCode.PRODUCT_NOT_FOUND, '商品不存在');
-    }
+  async updateStock(id: string, quantity: number, user: AccessUser) {
+    const product = await assertProductMutationAccess(this.prisma, user, id);
 
     const newStock = product.stock + quantity;
     if (newStock < 0) {
@@ -223,15 +242,18 @@ export class ProductService {
     const updated = await this.prisma.product.update({
       where: { id },
       data: { stock: newStock },
-      include: { category: true },
+      include: {
+        category: true,
+        merchant: { include: { merchantProfile: true } },
+      },
     });
 
     return new ProductResponseDto(updated);
   }
 
   // 删除商品
-  async delete(id: string) {
-    await this.findOne(id);
+  async delete(id: string, user: AccessUser) {
+    await assertProductMutationAccess(this.prisma, user, id);
 
     // 检查是否有订单关联（软删除更好，这里简单处理）
     const orderItems = await this.prisma.orderItem.findFirst({
@@ -254,7 +276,7 @@ export class ProductService {
     return { message: '商品已删除' };
   }
 
-  // 批量上架
+  // 批量上架（管理员专用）
   async batchPublish(ids: string[]) {
     await this.prisma.product.updateMany({
       where: { id: { in: ids } },
@@ -264,7 +286,7 @@ export class ProductService {
     return { message: `已上架 ${ids.length} 个商品` };
   }
 
-  // 批量下架
+  // 批量下架（管理员专用）
   async batchOffline(ids: string[]) {
     await this.prisma.product.updateMany({
       where: { id: { in: ids } },

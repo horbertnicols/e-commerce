@@ -42,13 +42,24 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      register: async (email: string, password: string, name: string) => {
+      register: async (
+        email: string,
+        password: string,
+        name: string,
+        merchantInfo?: {
+          shopName: string;
+          contactPhone: string;
+          businessLicense: string;
+          description?: string;
+        },
+      ) => {
         set({ isLoading: true });
         try {
           const data = await api.post<LoginResponse>('/auth/register', {
             email,
             password,
             name,
+            merchantInfo,
           });
           setToken(data.accessToken);
           set({
